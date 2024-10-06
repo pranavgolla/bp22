@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const dotEnv = require("dotenv");
 const routes=require('./routes/AllRoutes')
+const Aadhaar = require('./models/Aadhaar');
+
 dotEnv.config();
 
 // Initialize app
@@ -31,8 +33,9 @@ const studentSchema = new mongoose.Schema({
   term2: Number,
   term3: Number,
   role:String,
-  password: String, // New field for password
-  photoFile: String, // Path to the uploaded photo file
+  email:String,
+  password: String,
+  photoFile: String,
 });
 
 // Student Model
@@ -53,7 +56,7 @@ const upload = multer({ storage });
 // Add a new student with a password and photo
 app.post('/students', upload.single('photoFile'), async (req, res) => {
   try {
-    const { firstName, lastName, parentName, previousSchool, previousClass, presentClass, term1, term2, term3, password } = req.body;
+    const { firstName, lastName, parentName,motherName, previousSchool, previousClass, presentClass, term1, term2, term3,email, password } = req.body;
     
     // Encrypt the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -62,14 +65,16 @@ app.post('/students', upload.single('photoFile'), async (req, res) => {
       firstName,
       lastName,
       parentName,
+      motherName,
       previousSchool,
       previousClass,
       presentClass,
       term1,
       term2,
       term3,
+      email,
       password: hashedPassword,
-      photoFile: req.file ? req.file.filename : null, // Save filename if photo was uploaded
+      photoFile: req.file ? req.file.filename : null, 
     });
 
     await student.save();
@@ -114,6 +119,7 @@ app.put('/students/:id', upload.single('photoFile'), async (req, res) => {
       firstName,
       lastName,
       parentName,
+      motherName,
       previousSchool,
       previousClass,
       presentClass,
@@ -152,7 +158,53 @@ app.delete('/students/:id', async (req, res) => {
   }
 });
 
-app.use('/api',routes );
+
+
+
+
+
+const storagea = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, 'uploadsa/');
+  },
+  filename: (req, file, cb) => {
+      cb(null, Date.now() + path.extname(file.originalname)); // Save with timestamp
+  }
+});
+
+const uploada = multer({ storagea });
+
+
+
+// Upload Aadhaar file route
+app.post('/uploada', uploada.single('aadhaarFile'), async (req, res) => {
+  const { userId } = req.body;
+
+  if (!req.file) {
+      return res.status(400).send({ error: 'No file uploaded' });
+  }
+
+  // Save file data to MongoDB
+  const aadhaar = new Aadhaar({
+      userId,
+      aadhaarFile: req.file.filename,
+  });
+
+  try {
+      await aadhaar.save();
+      res.status(201).send({ message: 'Aadhaar uploaded successfully' });
+  } catch (error) {
+      res.status(500).send({ error: 'Server error' });
+  }
+});
+
+
+
+
+
+
+
+
 
 // Start server
 app.listen(5000, () => {
