@@ -204,6 +204,7 @@ app.post('/uploada', uploada.single('aadhaarFile'), async (req, res) => {
 
 
 
+app.use("/api", routes);
 
 
 // Start server
